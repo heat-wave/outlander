@@ -28,34 +28,24 @@ def mean(numbers):
 
 # spotted at jonathanrjpereira/Ngram-Analytica
 def ngrams(content, start, end, smoothing):
-    url = "https://books.google.com/ngrams/graph"
+    url = "https://books.google.com/ngrams/json"
 
     querystring = {"content":content,
                    "case_insensitive":"on",
                    "year_start":start,
                    "year_end":end,
-                   "corpus":"15",
+                   "corpus":"26",
                    "smoothing":smoothing}
 
-    page = requests.get(url, params=querystring)
+    response = requests.get(url, params=querystring)
+    data = response.json()
 
-    soup = BeautifulSoup(page.content, 'html.parser')
-    scripts = soup.find_all('script', type='text/javascript')
-    graph = scripts[3].string
-    
-    try:
-        found = re.search('"timeseries": (.+?)], "pare', graph).group(1)
-    except:
-        return [0]
-
-    tokens = found.replace('[', '').split(', ')
-    datapoints = [float(datapoint) for datapoint in tokens]
-
-    return datapoints
+    graph = data[0]['timeseries']
+    return graph
 
 def meaning(word, threshold, dictionary):
     print(word)
-    if mean(ngrams(word, 1950, 2008, 3)) < threshold:
+    if mean(ngrams(word, 1950, 2019, 3)) < threshold:
         return dictionary.meaning(word)
     else:
         return None
@@ -82,5 +72,6 @@ if __name__ == '__main__':
     
     with open(args.filename) as file:
         lemmas = lemmatize_text(file.read())
+        lemmas = [x for x in lemmas if len(x.strip()) > 0]
         definitions = uncommon_word_definitions(lemmas, 1e-5)
         export(args.filename, 'anki', definitions)
